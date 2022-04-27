@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 from kubernetes import client, config
+from prometheus_client import start_http_server, Gauge
 from cryptography import x509
 import base64
 import time
 import datetime
 
-def main():
+global gage 
+def get_cert_data():
     config.load_kube_config()
 
     v1 = client.CoreV1Api()
@@ -22,11 +24,26 @@ def main():
             convert_cert_to_epoch = datetime.datetime(cert_date.year, cert_date.month, cert_date.day, cert_date.hour, cert_date.minute, cert_date.second).timestamp()
             now = time.time()
             days_remaining = (convert_cert_to_epoch - now) / 86400
-            print("cert ", name, "in namespace", namespace, "has: ", "%.2f" % days_remaining, "days left")
-        
-        
+            publish_metrics(name, namespace, days_remaining)
 
-        
+
+def publish_metrics(name, namespace, days_remaining):
+    cn = str(name)
+    cn = cn.split('=')
+    cn = cn[1].split(')')
+    appname = cn[0]
+    days_remaining = round(days_remaining, 2)
+    kpi_string = "heru_monitor_certificate_days_reminaining" + "{" + appname + "}"
+    gage = Gauge(kpi_string, 'Days left before cert expires')
+    gage.set(days_remaining)
+
+
+def main():
+    start_http_server(9100)
+    while True:
+        get_cert_data()
+        time.sleep(30)
+
         
 if __name__ == '__main__': 
     main()
