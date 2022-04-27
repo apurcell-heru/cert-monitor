@@ -5,11 +5,11 @@ from cryptography import x509
 import base64
 import time
 import datetime
+import string
 
 global gage 
 def get_cert_data():
     config.load_kube_config()
-
     v1 = client.CoreV1Api()
     ret = v1.list_secret_for_all_namespaces(watch=False)
     for i in ret.items:
@@ -24,16 +24,20 @@ def get_cert_data():
             convert_cert_to_epoch = datetime.datetime(cert_date.year, cert_date.month, cert_date.day, cert_date.hour, cert_date.minute, cert_date.second).timestamp()
             now = time.time()
             days_remaining = (convert_cert_to_epoch - now) / 86400
-            publish_metrics(name, namespace, days_remaining)
+            publish_metrics(name, namespace, days_remaining, counter)
 
 
 def publish_metrics(name, namespace, days_remaining):
     cn = str(name)
     cn = cn.split('=')
     cn = cn[1].split(')')
+   # cn = cn[0].split('.')
     appname = cn[0]
+    appname = appname.replace('.', '_')
+    appname = appname.replace('-', '_')
+    appname = appname.replace('_heru_net', '')
     days_remaining = round(days_remaining, 2)
-    kpi_string = "heru_monitor_certificate_days_reminaining" + "{" + appname + "}"
+    kpi_string = "heru_monitor_certificate_days_reminaining_" + appname
     gage = Gauge(kpi_string, 'Days left before cert expires')
     gage.set(days_remaining)
 
