@@ -14,7 +14,7 @@ metadata:
   name: read-secrets-global
 subjects:
 - kind: ServiceAccount
-  name: default
+  name: monitor-user
   namespace: default
 roleRef:
   kind: ClusterRole
