@@ -12,7 +12,7 @@ is_vars_set = 0
 
 def make_metrics():
     global is_vars_set
-    config.load_kube_config()
+    config.load_incluster_config()
     v1 = client.CoreV1Api()
     ret = v1.list_secret_for_all_namespaces(watch=False)
     for i in ret.items:
@@ -63,7 +63,7 @@ def main():
     start_http_server(9100)
     while True:
         make_metrics()
-        time.sleep(10)
+        time.sleep(900)
         
 if __name__ == '__main__': 
     main()

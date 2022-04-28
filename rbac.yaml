@@ -1,22 +1,21 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: secret-reader
+  name: cert-monitor-access
 rules:
 - apiGroups: [""]
   resources: ["secrets"]
   verbs: ["get", "watch", "list"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-# This cluster role binding allows anyone in the "manager" group to read secrets in any namespace.
 kind: ClusterRoleBinding
 metadata:
   name: read-secrets-global
 subjects:
 - kind: ServiceAccount
-  name: monitor-user
-  namespace: default
+  name: cert-monitor-user
+  namespace: prometheus
 roleRef:
   kind: ClusterRole
-  name: secret-reader
+  name: cert-monitor-access
   apiGroup: rbac.authorization.k8s.io
