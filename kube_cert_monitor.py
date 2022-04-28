@@ -7,8 +7,11 @@ import time
 import datetime
 import string
 
-global gage 
+global is_vars_set 
+is_vars_set = 0
+
 def get_cert_data():
+    global is_vars_set
     config.load_kube_config()
     v1 = client.CoreV1Api()
     ret = v1.list_secret_for_all_namespaces(watch=False)
@@ -24,30 +27,42 @@ def get_cert_data():
             convert_cert_to_epoch = datetime.datetime(cert_date.year, cert_date.month, cert_date.day, cert_date.hour, cert_date.minute, cert_date.second).timestamp()
             now = time.time()
             days_remaining = (convert_cert_to_epoch - now) / 86400
-            publish_metrics(name, namespace, days_remaining, counter)
+            days_remaining = round(days_remaining, 2)
+            #is_vars_set == 0 means we need to create variables for all the kpis. 1 means its done!
+            if is_vars_set == 0:
+                fetch_var = create_kpi(name)
+                if fetch_var == "heru_monitor_certificate_days_remaining_echo_unc":
+                    continue
+                globals()[fetch_var] = Gauge(fetch_var, "Days left before cert expires")
+            else:
+                fetch_var = create_kpi(name)
+                if fetch_var == "heru_monitor_certificate_days_remaining_echo_unc":
+                    continue
+                globals()[fetch_var].set(days_remaining)
+                
+    is_vars_set = 1       
 
 
-def publish_metrics(name, namespace, days_remaining):
+def create_kpi(name):
+# We need to reformat the names into a way that prometheus likes
+# no dots or dashes only underscores
+# we lob off the .heru.net as its not needed
+
     cn = str(name)
     cn = cn.split('=')
     cn = cn[1].split(')')
-   # cn = cn[0].split('.')
     appname = cn[0]
     appname = appname.replace('.', '_')
     appname = appname.replace('-', '_')
     appname = appname.replace('_heru_net', '')
-    days_remaining = round(days_remaining, 2)
-    kpi_string = "heru_monitor_certificate_days_reminaining_" + appname
-    gage = Gauge(kpi_string, 'Days left before cert expires')
-    gage.set(days_remaining)
-
+    kpi_string = "heru_monitor_certificate_days_remaining_" + appname
+    return(kpi_string)
 
 def main():
     start_http_server(9100)
     while True:
         get_cert_data()
-        time.sleep(30)
-
+        time.sleep(10)
         
 if __name__ == '__main__': 
     main()
