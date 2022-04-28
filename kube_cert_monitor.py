@@ -5,12 +5,12 @@ from cryptography import x509
 import base64
 import time
 import datetime
-import string
+
 
 global is_vars_set 
 is_vars_set = 0
 
-def get_cert_data():
+def make_metrics():
     global is_vars_set
     config.load_kube_config()
     v1 = client.CoreV1Api()
@@ -34,6 +34,7 @@ def get_cert_data():
                 if fetch_var == "heru_monitor_certificate_days_remaining_echo_unc":
                     continue
                 globals()[fetch_var] = Gauge(fetch_var, "Days left before cert expires")
+                globals()[fetch_var].set(days_remaining)
             else:
                 fetch_var = create_kpi(name)
                 if fetch_var == "heru_monitor_certificate_days_remaining_echo_unc":
@@ -61,7 +62,7 @@ def create_kpi(name):
 def main():
     start_http_server(9100)
     while True:
-        get_cert_data()
+        make_metrics()
         time.sleep(10)
         
 if __name__ == '__main__': 
